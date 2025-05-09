@@ -82,7 +82,8 @@ public class MicrosoftMediaImporterTest {
   private static final String FAKE_ACCESS_TOKEN = "fake-acc-token-"+UUID.randomUUID();
 
   MicrosoftMediaImporter importer;
-  OkHttpClient client;
+  OkHttpClient client = mock(OkHttpClient.class);
+  OkHttpClient.Builder clientBuilder;
   ObjectMapper objectMapper;
   TemporaryPerJobDataStore jobStore;
   Monitor monitor;
@@ -95,7 +96,8 @@ public class MicrosoftMediaImporterTest {
   @Before
   public void setUp() throws IOException {
     authData = mock(TokensAndUrlAuthData.class);
-    client = mock(OkHttpClient.class);
+    clientBuilder = mock(OkHttpClient.Builder.class);
+    doReturn(client).when(clientBuilder).build();
     objectMapper =
         new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     // mocked on a per test basis
@@ -112,7 +114,7 @@ public class MicrosoftMediaImporterTest {
     importer =
         new MicrosoftMediaImporter(
             BASE_URL,
-            client,
+            clientBuilder,
             objectMapper,
             jobStore,
             monitor,
@@ -175,7 +177,16 @@ public class MicrosoftMediaImporterTest {
                     r.url()
                         .toString()
                         .equals("https://www.baseurl.com/v1.0/me/drive/special/photos/children")));
-    Response response = fakeErrorResponse(403, "Access Denied", "{\"id\": \"id1\"}").build();
+    Response response = fakeResponse(403, "",
+        "{" +
+            "\"error\": {" +
+                "\"code\":\"accessDenied\"," +
+                "\"message\":\"Access Denied\"," +
+                "\"localizedMessage\":\"アイテムが削除されているか、期限切れになっているか、またはこのアイテムへのアクセス許可がない可能性があります。詳細については、このアイテムの所有者に問い合わせてください。\"," +
+                "\"innerError\": {\"date\":\"2024-12-24T01:03:02\",\"request-id\":\"fake-request-id\",\"client-request-id\":\"fake-client-request-id\"}" +
+            "}" +
+        "}"
+        ).build();
     when(call.execute()).thenReturn(response);
 
     assertThrows(

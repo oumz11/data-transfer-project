@@ -218,12 +218,12 @@ public abstract class MicrosoftApiResponse {
 
   private FatalState toFatalState() {
     checkState(isFatal(), "cannot explain fatal state when is apparently recoverable");
-    if (httpStatus() == 403 && httpMessage().contains("Access Denied")) {
+    if (httpStatus() == 403 && (bodyContains("accessDenied") || bodyContains("notAllowed"))) {
       return FatalState.FATAL_STATE_FATAL_PERMISSION_DENIED;
     }
     // Nit: we _could_ just parse the body into json properly and make sure the JSON body "message"
     // field has this string. This seems fine for now.
-    if (httpStatus() == 507 && bodyContains("Insufficient Space Available")) {
+    if (httpStatus() == 507 && (bodyContains("Insufficient Space Available") || bodyContains("quotaLimitReached"))) {
       return FatalState.FATAL_STATE_FATAL_DESTINATION_FULL;
     }
     return FatalState.FATAL_STATE_FATAL_UNSPECIFIED;
